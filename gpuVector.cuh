@@ -8,7 +8,7 @@
 #include"type_traits"
 #include <algorithm>
 
-#define GVECTOR_WITH_MATLAB
+//#define GVECTOR_WITH_MATLAB
 
 #if defined(GVECTOR_WITH_MATLAB)  
 extern void pass_matrix_to_matlab(const char* namestr, float* pdata, int nrows, int ncols, int wordpitch, bool rowmajor = false);
