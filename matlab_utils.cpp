@@ -9,8 +9,8 @@ using namespace Eigen;
 MatlabEngine gMatEngine;
 
 // Matlab engine
-//#pragma comment(lib, "libeng.lib")
-//#pragma comment(lib, "libmx.lib")
+#pragma comment(lib, "libeng.lib")
+#pragma comment(lib, "libmx.lib")
 
 bool MatlabEngine::connect(const std::string &dir, bool closeAll)
 {
@@ -77,6 +77,7 @@ void MatlabEngine::eval(const std::string &cmd)
 	}
 }
 
+
 void MatlabEngine::close()
 {
     printf( "Shutting down MATLAB engine ... " );
@@ -85,22 +86,11 @@ void MatlabEngine::close()
 	eng = nullptr;
 }
 
-MatlabEngine& getMatEngine() {	
-	return gMatEngine;
+MatlabEngine& getMatEngine() 
+{	
+	return gMatEngine; 
 }
 
-Eigen::Matrix<double, -1, -1> loadMatrixFromFile(const std::string& varname, const std::string& filename)
-{
-	//auto pmatfile = matOpen
-	auto pmatfile = matOpen(filename.c_str(), "r");
-	mxArray* pmxArray = matGetVariable(pmatfile, varname.c_str());
-	double* pdata = (double*)mxGetData(pmxArray);
-	int m = mxGetM(pmxArray);
-	int n = mxGetN(pmxArray);
-	Eigen::Matrix<double, -1, -1> varmat(m, n);
-	memcpy(varmat.data(), pdata, sizeof(double) * m * n);
-	return varmat;
-}
 
 #endif
 

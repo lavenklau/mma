@@ -3,10 +3,19 @@
 #ifndef __MMAOPTER_HPP
 #define __MMAOPTER_HPP
 
+
 #ifdef _EXPORT_MMAOPT
+#ifdef _WIN32
 #define API_MMAOPT extern "C" __declspec(dllexport)
 #else
+#define API_MMAOPT __attribute__((visibility("default")))
+#endif
+#else
+#ifdef _WIN32
 #define API_MMAOPT extern "C" __declspec(dllimport)
+#else
+#define API_MMAOPT
+#endif
 #endif
 
 

@@ -1,15 +1,15 @@
 #pragma once
 
-#include <engine.h>
+#include "engine.h"
 #include <cstdint>
 #include <cstdarg>
-#include <mat.h>
 
 #include <vector>
 #include <Eigen/Sparse>
 
-#define ENABLE_MATLAB
+//#define ENABLE_MATLAB
 
+#pragma warning(disable:4244)
 //#define MATLAB_DEFAULT_RELEASE R2017b
 //#define MATLAB_DEFAULT_RELEASE R2018a
 
@@ -329,6 +329,7 @@ void matlab2eigen(const std::string &name, Matrix &v, bool temp=false)
 template<class eigenSpMatrix>
 void matlabSpmat2eigen(const mxArray* Spm, eigenSpMatrix & v)
 {
+#ifdef ENABLE_MATLAB
 	typedef typename eigenSpMatrix::Scalar R;
 	typedef Eigen::Map<Eigen::SparseMatrix<R, Eigen::ColMajor, std::make_signed<mwIndex>::type>> EigenSparseMat;
 	ensureTypeMatch(R, Spm, "Eigen::SparseMatrix");
@@ -343,6 +344,7 @@ void matlabSpmat2eigen(const mxArray* Spm, eigenSpMatrix & v)
 	int ncols = mxGetN(Spm);
 
 	v = Eigen::Map<Eigen::SparseMatrix<R, Eigen::ColMajor, std::make_signed<mwIndex>::type>>(nrows, ncols, nnzs, Jc, Ir, Vp);
+#endif
 }
 
 template<class eigenSpMatrix>
@@ -364,6 +366,7 @@ void matlabSpmat2eigen(const std::string &name, eigenSpMatrix & v) {
 template<class Mat>
 inline void eigen2matlabComplex(const std::string &name, const Mat &vr, const Mat &vi)
 {
+#ifdef ENABLE_MATLAB
     mwSize dim[] = { vr.rows(), vr.cols() };
     mxArray *m = mxCreateNumericArray(2, dim, MatlabNum<double>::id, mxCOMPLEX);
 
@@ -373,16 +376,19 @@ inline void eigen2matlabComplex(const std::string &name, const Mat &vr, const Ma
 
     getMatEngine().putVariable(name, m);
     mxDestroyArray(m);
+#endif
 }
 
 template <class M>
 void eigen2matlab(const Eigen::MatrixBase<M> &v, mxArray *m)
 {
+#ifdef ENABLE_MATLAB
 	typedef typename M::Scalar R;
 	ensureTypeMatch(R, m, "Eigen::Matrix"); 
 
     using namespace Eigen;
     Map<Matrix<R, Dynamic, Dynamic, ColMajor> >((R*)mxGetData(m), v.rows(), v.cols()) = v;
+#endif
 }
 
 inline void scalar2matlab(const std::string &name, double v) {
@@ -429,6 +435,7 @@ void eigen2matlab(const std::string &name, const Eigen::MatrixBase<M> &v)
 template <class R>
 void eigen2matlab(const std::string &name, const Eigen::SparseMatrix<R,Eigen::ColMajor> &A)
 {
+#ifdef ENABLE_MATLAB
     int rows = A.rows(), cols = A.cols(), nnz = A.nonZeros();
     mxArray *m = mxCreateSparse(rows, cols, nnz, mxREAL);
 	if (m == nullptr) printf("-- \033[31meigen2mat failed (nullptr)\033[0m\n");
@@ -444,6 +451,7 @@ void eigen2matlab(const std::string &name, const Eigen::SparseMatrix<R,Eigen::Co
 		printf("-- \033[31meigen2mat failed (transfer failed)\033[0m\n");
 	}
     mxDestroyArray(m);
+#endif
 }
 
 template<class M>
@@ -539,6 +547,3 @@ void scaler2ConnectedMatlab(const std::string &name, T val) {
 	eigen2ConnectedMatlab(name, scalarmat);
 #endif
 }
-
-//template<typename T>
-Eigen::Matrix<double, -1, -1> loadMatrixFromFile(const std::string& varname, const std::string& filename);

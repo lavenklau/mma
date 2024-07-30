@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.8)
 project(mma)
 
 enable_language(CUDA)
-
+# disable all warning for clean output
+add_definitions(-w)
 find_package(CUDA REQUIRED)
 
 # Do what the new package does
@@ -28,7 +29,7 @@ set (BUILD_TEST ON CACHE BOOL "whether to build test target")
 set (USE_MATLAB OFF CACHE BOOL "whether to use matlab support, usefull when debuging")
 
 if(BUILD_TEST)
-    set (USE_MATLAB ON CACHE BOOL STRING FORCE)
+    # set (USE_MATLAB ON CACHE BOOL STRING FORCE)
 endif()
 
 set (CMAKE_CXX_STANDARD 17)
@@ -39,6 +40,7 @@ list (APPEND libfiles mmaOpt.cpp mmaOpt.cu lib.cu)
 
 if (USE_MATLAB)
     find_package(Matlab REQUIRED COMPONENTS ENG_LIBRARY MX_LIBRARY MAT_LIBRARY)
+    add_definitions(-DENABLE_MATLAB)
     add_definitions(-DGVECTOR_WITH_MATLAB)
     message(STATUS "matlab eng library ${Matlab_ENG_LIBRARY}")
     message(STATUS "matlab mx library ${Matlab_MX_LIBRARY}")
@@ -46,7 +48,8 @@ if (USE_MATLAB)
 endif()
 
 add_library(mma SHARED ${libfiles})
-
+set_target_properties(mma PROPERTIES CUDA_ARCHITECTURES "61;75;86")
+target_include_directories(mma PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 target_compile_options(mma PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
     --extended-lambda
     --std=c++17
@@ -58,7 +61,6 @@ if(USE_MATLAB)
     target_link_libraries(mma PRIVATE ${Matlab_ENG_LIBRARY})
     target_link_libraries(mma PRIVATE ${Matlab_MAT_LIBRARY})
 endif()
-
 target_include_directories(mma PRIVATE "${CMAKE_SOURCE_DIR}/Common")
 target_compile_definitions(mma PRIVATE -D_EXPORT_MMAOPT)
 target_link_libraries (mma PRIVATE Eigen3::Eigen)

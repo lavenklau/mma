@@ -616,10 +616,10 @@ namespace gv {
 	template<typename Scalar, typename T = gVector<Scalar>, typename std::enable_if<std::is_same<T, gVector<Scalar>>::value, int>::type = 0> struct var_t;
 	template<typename, typename >struct dot_exp_t;
 
-	template<typename Scalar>
+	template<typename T>
 	class gVector {
 	public:
-		typedef Scalar Scalar;
+		typedef T Scalar;
 		static gVector buf_vector;
 	private:
 		Scalar* _data = nullptr;
@@ -690,20 +690,20 @@ namespace gv {
 			cuda_error_check;
 		}
 
-		template<typename expr_t, typename T,
+		template<typename expr_t, typename S,
 			typename std::enable_if<is_expression<expr_t>::value, int>::type = 0,
-			typename std::enable_if<std::is_scalar_v<T>, int>::type = 0
+			typename std::enable_if<std::is_scalar_v<S>, int>::type = 0
 		>
-			void set(const expr_t& exprfilter, T repl_val) {
-			set_filter_value(exprfilter, scalar_t<T>(repl_val));
+			void set(const expr_t& exprfilter, S repl_val) {
+			set_filter_value(exprfilter, scalar_t<S>(repl_val));
 		}
 
-		template<typename expr_t, typename T,
+		template<typename expr_t, typename S,
 			typename std::enable_if<is_expression<expr_t>::value, int>::type = 0,
-			typename std::enable_if<std::is_scalar_v<T>, int>::type = 0
+			typename std::enable_if<std::is_scalar_v<S>, int>::type = 0
 		>
-			void set(const expr_t& exprfilter, const gv::gVector<T>& repl_val) {
-			set_filter_value(exprfilter, var_t<T>(repl_val));
+			void set(const expr_t& exprfilter, const gv::gVector<S>& repl_val) {
+			set_filter_value(exprfilter, var_t<S>(repl_val));
 		}
 
 		template<bool transpose = false>
@@ -949,14 +949,14 @@ namespace gv {
 
 		//gVector concated(void) const { return *this; }
 
-		template<typename T, typename std::enable_if<std::is_scalar<T>::value, int>::type = 0>
-		concat_exp_t<Scalar, var_t<Scalar>, var_t<T>> concat(const gVector<T>& v) {
-			return concat_exp_t<Scalar, var_t<Scalar>, var_t<T>>(var_t<Scalar>(*this), var_t<T>(v));
+		template<typename S, typename std::enable_if<std::is_scalar<S>::value, int>::type = 0>
+		concat_exp_t<Scalar, var_t<Scalar>, var_t<S>> concat(const gVector<S>& v) {
+			return concat_exp_t<Scalar, var_t<Scalar>, var_t<S>>(var_t<Scalar>(*this), var_t<S>(v));
 		}
 
-		template<typename T, typename std::enable_if<std::is_scalar<T>::value, int>::type = 0>
-		concat_exp_t<Scalar, var_t<Scalar>, scalar_t<T>> concat(T v) {
-			return concat_exp_t<Scalar, var_t<Scalar>, scalar_t<T>>(var_t<Scalar>(*this), scalar_t<T>(v));
+		template<typename S, typename std::enable_if<std::is_scalar<S>::value, int>::type = 0>
+		concat_exp_t<Scalar, var_t<Scalar>, scalar_t<S>> concat(S v) {
+			return concat_exp_t<Scalar, var_t<Scalar>, scalar_t<S>>(var_t<Scalar>(*this), scalar_t<S>(v));
 		}
 
 		template<typename opExp_t, typename std::enable_if<is_expression<opExp_t>::value, int>::type = 0>
@@ -964,8 +964,8 @@ namespace gv {
 			return concat_exp_t<Scalar, var_t<Scalar>, opExp_t>(var_t<Scalar>(*this), op);
 		}
 
-		template<typename T0, typename... T, typename std::enable_if < (sizeof...(T) >= 1), int>::type = 0 >
-		auto concat(const T0& op0, const T&... opex) {
+		template<typename S0, typename... S, typename std::enable_if < (sizeof...(S) >= 1), int>::type = 0 >
+		auto concat(const S0& op0, const S&... opex) {
 			return concat(op0).concat(opex...);
 		}
 
@@ -1010,7 +1010,7 @@ namespace gv {
 
 		Scalar dot(const gVector& v2) const;
 
-		template<typename opExp_t, typename std::enable_if<is_expression<opExp_t>::value, int>::type = 0, typename T = gVector>
+		template<typename opExp_t, typename std::enable_if<is_expression<opExp_t>::value, int>::type = 0, typename S = gVector>
 		Scalar dot(const opExp_t& ex) {
 			return var_t<Scalar>(*this).dot(ex);
 		}
@@ -1021,13 +1021,16 @@ namespace gv {
 
 		static gVectorMap<Scalar> Map(Scalar* ptr, size_t size) { return gVectorMap<Scalar>(ptr, size); }
 
-#if defined(GVECTOR_WITH_MATLAB)
 		template<typename std::enable_if<
 			std::is_same<Scalar, double>::value || 
 			std::is_same<Scalar, float>::value || 
 			std::is_same<Scalar, int>::value ||
 			std::is_same<Scalar, bool>::value, int>::type = 0>
-		void toMatlab(const char* name) const { pass_matrix_to_matlab(name, _data, _size, 1, _size, false); }
+		void toMatlab(const char* name) const {
+#if defined(GVECTOR_WITH_MATLAB)
+			 pass_matrix_to_matlab(name, _data, _size, 1, _size, false); 
+#endif
+			 }
 
 		template<typename std::enable_if<
 			std::is_same<Scalar, double>::value || 
@@ -1035,9 +1038,10 @@ namespace gv {
 			std::is_same<Scalar, int>::value ||
 			std::is_same<Scalar, bool>::value, int>::type = 0>
 		void toMatlab(const char* name, int rows, int cols, int wordpicth, bool rowmajor) const {
+#if defined(GVECTOR_WITH_MATLAB)
 			pass_matrix_to_matlab(name, _data, rows, cols, wordpicth, rowmajor);
-		}
 #endif
+		}
 	};
 
 
@@ -1051,7 +1055,7 @@ namespace gv {
 		gVectorMap(Scalar* data_ptr, size_t size) :gVector<Scalar>(data_ptr, size) {}
 
 		const gVectorMap<Scalar>& operator=(const gVector<Scalar>& v2) const {
-			cudaMemcpy(_data, v2.data(), v2.size(), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(gVector<Scalar>::_data, v2.data(), v2.size(), cudaMemcpyDeviceToDevice);
 			cuda_error_check;
 			return *this;
 		}
@@ -1059,29 +1063,29 @@ namespace gv {
 		template<typename expr_t, typename std::enable_if<is_expression<expr_t>::value, int>::type = 0>
 		const gVectorMap& operator=(const expr_t& expr) {
 			size_t expr_dim = expr.size();
-			if (expr_dim != _size) {
+			if (expr_dim != gVector<Scalar>::_size) {
 				throw std::string("unmatched vector size !");
 			}
-			expr.launch(_data, expr_dim);
+			expr.launch(gVector<Scalar>::_data, expr_dim);
 			return *this;
 		}
 
 		gVectorMap(const gVectorMap& vm2) = delete;
 
 		~gVectorMap(void) override {
-			_Get_data() = nullptr;
-			_Get_size() = 0;
+			gVector<Scalar>::_Get_data() = nullptr;
+			gVector<Scalar>::_Get_size() = 0;
 		}
 
 	};
 
 	template<typename Scalar = float>
 	class gElementProxy {
-		gVector<Scalar>::Scalar* address;
+		typename gVector<Scalar>::Scalar* address;
 	public:
 		explicit gElementProxy(Scalar* ptr) : address(ptr) {}
 
-		const gElementProxy& gElementProxy::operator=(Scalar val) {
+		const gElementProxy& operator=(Scalar val) {
 			cudaMemcpy(address, &val, sizeof(Scalar), cudaMemcpyHostToDevice);
 			return (*this);
 		}
@@ -1704,10 +1708,10 @@ namespace gv {
 		}
 
 #if 1
-		template<typename Scalar, typename std::enable_if<std::is_scalar<Scalar>::value, int>::type = 0>
-		min_exp_t<subExp_t, var_t<Scalar>> min(const gVector<Scalar>& s) const {
+		template<typename S, typename std::enable_if<std::is_scalar<S>::value, int>::type = 0>
+		min_exp_t<subExp_t, var_t<S>> min(const gVector<S>& s) const {
 			const subExp_t* p_ex = static_cast<const subExp_t*>(this);
-			return min_exp_t<subExp_t, var_t<Scalar>>(*p_ex, var_t<Scalar>(s));
+			return min_exp_t<subExp_t, var_t<S>>(*p_ex, var_t<S>(s));
 		}
 #else
 		template<typename T, typename std::enable_if<std::is_same<T, gVector>::value, int>::type = 0>
@@ -1729,10 +1733,10 @@ namespace gv {
 			return max_exp_t<subExp_t, scalar_t<T>>(*p_ex, scalar_t<T>(s));
 		}
 
-		template<typename Scalar, typename std::enable_if<std::is_scalar<Scalar>::value, int>::type = 0>
-		max_exp_t<subExp_t, var_t<Scalar>> max(const gVector<Scalar>& s) const {
+		template<typename S, typename std::enable_if<std::is_scalar<S>::value, int>::type = 0>
+		max_exp_t<subExp_t, var_t<S>> max(const gVector<S>& s) const {
 			const subExp_t* p_ex = static_cast<const subExp_t*>(this);
-			return max_exp_t<subExp_t, var_t<Scalar>>(*p_ex, var_t<Scalar>(s));
+			return max_exp_t<subExp_t, var_t<S>>(*p_ex, var_t<S>(s));
 		}
 
 		template<typename Lambda>
@@ -1883,9 +1887,9 @@ namespace gv {
 	};
 
 	template<typename exp> struct exp_scalar { typedef typename exp::value_type type; };
-	template<typename exp> using exp_scalar_t = exp_scalar<exp>::type;
+	template<typename exp> using exp_scalar_t = typename exp_scalar<exp>::type;
 	template<typename _T1, typename _T2> struct scalar_result { typedef decltype(_T1{ 0 }*_T2{ 0 }) type; };
-	template<typename _T1, typename _T2> using  scalar_result_t = scalar_result<_T1, _T2>::type;
+	template<typename _T1, typename _T2> using  scalar_result_t = typename scalar_result<_T1, _T2>::type;
 
 template<typename  Scalar, typename T /*= gVector<Scalar>*/, typename std::enable_if<std::is_same<T, gVector<Scalar>>::value, int>::type /*= 0*/>
 struct var_t
@@ -1917,15 +1921,15 @@ struct scalar_t
 	}
 };
 
-template<typename Scalar, typename opExp_t, bool transpose/* = false*/>
+template<typename T, typename opExp_t, bool transpose/* = false*/>
 struct dup_exp_t
-	: exp_t<Scalar, dup_exp_t<Scalar, opExp_t>>
+	: exp_t<T, dup_exp_t<T, opExp_t>>
 {
 	opExp_t exp;
 	int nwordpitch;
 	int ndup;
 	int nwordvalid;
-	typedef Scalar Scalar;
+	typedef T Scalar;
 	__host__ __device__ dup_exp_t(const opExp_t& opexp, int nwvalid, int nwpitch, int ndp) : exp(opexp), nwordvalid(nwvalid), nwordpitch(nwpitch), ndup(ndp) {}
 	__host__ __device__ int size(void) const {
 		if (!transpose) {
@@ -1961,11 +1965,11 @@ struct dup_exp_t
 	}
 };
 
-template<typename Scalar, typename opExp1_t, typename opExp2_t>
+template<typename T, typename opExp1_t, typename opExp2_t>
 struct concat_exp_t
-	: exp_t<Scalar, concat_exp_t<Scalar, opExp1_t, opExp2_t>>
+	: exp_t<T, concat_exp_t<T, opExp1_t, opExp2_t>>
 {
-	typedef Scalar Scalar;
+	typedef T Scalar;
 	opExp1_t exp1;
 	opExp2_t exp2;
 	__host__ __device__ concat_exp_t(const opExp1_t& op1, const opExp2_t& op2)
@@ -1983,11 +1987,11 @@ struct concat_exp_t
 	}
 };
 
-template<typename Scalar, typename opExp_t>
+template<typename T, typename opExp_t>
 struct slice_exp_t
-	: exp_t<Scalar, slice_exp_t<Scalar, opExp_t>>
+	: exp_t<T, slice_exp_t<T, opExp_t>>
 {
-	typedef Scalar Scalar;
+	typedef T Scalar;
 	opExp_t exp0;
 	size_t start, end;
 	__host__ __device__ slice_exp_t(const opExp_t& op, size_t start_id, size_t end_id) :exp0(op), start(start_id), end(end_id) {}
@@ -1999,12 +2003,12 @@ struct slice_exp_t
 	}
 };
 
-template<typename Scalar, typename subExp_t, typename opExp_t>
+template<typename T, typename subExp_t, typename opExp_t>
 struct unary_exp_t
-	:public exp_t<Scalar, subExp_t>
+	:public exp_t<T, subExp_t>
 {
 	//typedef exp_t<Scalar, subExp_t>::value_type Scalar;
-	typedef Scalar Scalar;
+	typedef T Scalar;
 	opExp_t exp;
 	__host__ __device__ unary_exp_t(const opExp_t& opexp) :exp(opexp) {}
 	__host__ __device__ int size(void) const {
@@ -2014,14 +2018,14 @@ struct unary_exp_t
 
 template<typename opExp_t>
 struct negat_exp_t
-	:public unary_exp_t<typename exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>
+	:public unary_exp_t<exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>
 {
 	//typedef value_type Scalar;
-	typedef unary_exp_t<typename exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t> baseType;
+	typedef unary_exp_t<exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t> baseType;
 	typedef typename baseType::Scalar Scalar;
-	__host__ __device__ negat_exp_t(const opExp_t& ex) : unary_exp_t<typename exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>(ex) {}
+	__host__ __device__ negat_exp_t(const opExp_t& ex) : unary_exp_t<exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>(ex) {}
 	__device__ Scalar eval(int eid) const {
-		return -unary_exp_t<typename exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>::exp.eval(eid);
+		return -unary_exp_t<exp_scalar_t<opExp_t>, negat_exp_t<opExp_t>, opExp_t>::exp.eval(eid);
 	}
 };
 
@@ -2033,9 +2037,9 @@ negat_exp_t<opExp_t> operator-(const opExp_t& opexp) {
 
 template<typename opExp_t>
 struct abs_exp_t
-	:unary_exp_t<typename exp_scalar_t<opExp_t>, abs_exp_t<opExp_t>, opExp_t>
+	:unary_exp_t<exp_scalar_t<opExp_t>, abs_exp_t<opExp_t>, opExp_t>
 {
-	typedef unary_exp_t<typename exp_scalar_t<opExp_t>, abs_exp_t<opExp_t>, opExp_t> baseType;
+	typedef unary_exp_t<exp_scalar_t<opExp_t>, abs_exp_t<opExp_t>, opExp_t> baseType;
 	typedef typename baseType::Scalar Scalar;
 	__host__ __device__ abs_exp_t(const opExp_t& ex) : baseType(ex) {}
 	__device__ Scalar eval(int eid) const {
@@ -2045,28 +2049,28 @@ struct abs_exp_t
 
 template<typename opExp_t>
 struct sqrt_exp_t
-	:public unary_exp_t<typename exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>
+	:public unary_exp_t<exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>
 {
-	typedef unary_exp_t<typename exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t> baseType;
+	typedef unary_exp_t<exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t> baseType;
 	typedef typename baseType::Scalar Scalar;
-	__host__ __device__ sqrt_exp_t(const opExp_t& ex) :unary_exp_t<typename exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>(ex) {}
+	__host__ __device__ sqrt_exp_t(const opExp_t& ex) :unary_exp_t<exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>(ex) {}
 	__device__ Scalar eval(int eid) const {
-		return sqrt(unary_exp_t<typename exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>::exp.eval(eid));
+		return sqrt(unary_exp_t<exp_scalar_t<opExp_t>, sqrt_exp_t<opExp_t>, opExp_t>::exp.eval(eid));
 	}
 };
 
 template<typename opExp_t, typename Lambda>
 struct map_exp_t
-	:public unary_exp_t<typename exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>
+	:public unary_exp_t<exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>
 {
-	typedef unary_exp_t<typename exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t> baseType;
+	typedef unary_exp_t<exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t> baseType;
 	typedef typename baseType::Scalar Scalar;
 	Lambda _map;
 	__host__ __device__ map_exp_t(const opExp_t& ex, Lambda map)
-		: unary_exp_t<typename exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>(ex), _map(map)
+		: unary_exp_t<exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>(ex), _map(map)
 	{ }
 	__device__ Scalar eval(int eid) const {
-		return _map(unary_exp_t<typename exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>::exp.eval(eid));
+		return _map(unary_exp_t<exp_scalar_t<opExp_t>, map_exp_t<opExp_t, Lambda>, opExp_t>::exp.eval(eid));
 	}
 };
 
@@ -2074,12 +2078,12 @@ struct map_exp_t
 template<typename subExp_t, typename opExp1_t, typename opExp2_t>
 struct binary_exp_t
 	:public exp_t<
-	scalar_result_t<typename exp_scalar_t<opExp1_t>, typename exp_scalar_t<opExp2_t>>,
+	scalar_result_t<exp_scalar_t<opExp1_t>, exp_scalar_t<opExp2_t>>,
 	subExp_t>
 {
-	typedef exp_t< 
-		scalar_result_t<typename exp_scalar_t<opExp1_t>,
-		typename exp_scalar_t<opExp2_t>>,
+	typedef typename exp_t< 
+		scalar_result_t<exp_scalar_t<opExp1_t>,
+		exp_scalar_t<opExp2_t>>,
 		subExp_t>::value_type Scalar;
 	opExp1_t exp1;
 	opExp2_t exp2;
@@ -2221,7 +2225,7 @@ struct add_exp_t
 	typedef binary_exp_t<add_exp_t<opExp1_t, opExp2_t>, opExp1_t, opExp2_t> baseType;
 	__host__ __device__ add_exp_t(const opExp1_t& op1, const opExp2_t& op2) :binary_exp_t<add_exp_t, opExp1_t, opExp2_t>(op1, op2) {}
 	// add_exp_t(const add_exp_t<opExp1_t,opExp2_t>& ex): binary_exp_t<add_exp_t,opExp1_t,opExp2_t>(ex.exp1,ex.exp2){}
-	__device__ baseType::Scalar eval(int eid) const {
+	__device__ typename baseType::Scalar eval(int eid) const {
 		return baseType::exp1.eval(eid) + baseType::exp2.eval(eid);
 	}
 };
@@ -2234,7 +2238,7 @@ struct minus_exp_t
 	typedef binary_exp_t<minus_exp_t<opExp1_t, opExp2_t>, opExp1_t, opExp2_t> baseType;
 	__host__ __device__ minus_exp_t(const opExp1_t& op1, const opExp2_t& op2) :binary_exp_t<minus_exp_t, opExp1_t, opExp2_t >(op1, op2) {}
 
-	__device__ baseType::Scalar eval(int eid) const {
+	__device__ typename baseType::Scalar eval(int eid) const {
 		return baseType::exp1.eval(eid) - baseType::exp2.eval(eid);
 	}
 };
@@ -2247,7 +2251,7 @@ struct div_exp_t
 	typedef binary_exp_t<div_exp_t<opExp1_t, opExp2_t>, opExp1_t, opExp2_t> baseType;
 	__host__ __device__ div_exp_t(const opExp1_t& op1, const opExp2_t& op2) :binary_exp_t<div_exp_t, opExp1_t, opExp2_t >(op1, op2) {}
 
-	__device__ baseType::Scalar eval(int eid)const {
+	__device__ typename baseType::Scalar eval(int eid)const {
 		return baseType::exp1.eval(eid) / baseType::exp2.eval(eid);
 	}
 };
@@ -2260,7 +2264,7 @@ struct multiply_exp_t
 	typedef  binary_exp_t<multiply_exp_t<opExp1_t, opExp2_t>, opExp1_t, opExp2_t> baseType;
 	__host__ __device__ multiply_exp_t(const opExp1_t& op1, const opExp2_t& op2) : binary_exp_t<multiply_exp_t/*<opExp1_t, opExp2_t>*/, opExp1_t, opExp2_t>(op1, op2) {}
 	// multiply_exp_t(const multiply_exp_t& ex) :baseType(ex.exp1, ex.exp2) {}
-	__device__ baseType::Scalar eval(int eid) const {
+	__device__ typename baseType::Scalar eval(int eid) const {
 		return baseType::exp1.eval(eid)*baseType::exp2.eval(eid);
 	}
 };
@@ -2284,7 +2288,7 @@ struct min_exp_t
 {
 	//typedef value_type Scalar;
 	typedef binary_exp_t<min_exp_t<opExp1_t, opExp2_t>, opExp1_t, opExp2_t> baseType;
-	typedef baseType::Scalar Scalar;
+	typedef typename baseType::Scalar Scalar;
 	__host__ __device__ min_exp_t(const opExp1_t& op1, const opExp2_t& op2) :binary_exp_t<min_exp_t, opExp1_t, opExp2_t >(op1, op2) {}
 	__device__ Scalar eval(int eid) const {
 		Scalar val1 = baseType::exp1.eval(eid);
